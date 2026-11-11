@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --color-ink-950: #081525;
+  --color-navy-900: #0C2340;
+  --color-navy-800: #132E52;
+  --color-teal-700: #0D5A63;
+  --color-indigo-600: #3658B6;
+  --color-brand-green: #6DA616;
+  --color-sky-300: #9FC9E8;
+  --color-ivory-50: #F8F6F1;
+  --color-mist-100: #EEF1F3;
+  --color-slate-500: #657080;
+  --color-slate-800: #253244;
+}
+
+:root {
+  font-family: 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  direction: rtl;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #EEF1F3;
+}
+::-webkit-scrollbar-thumb {
+  background: #BAC3CE;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8795A5;
+}
+
+/* Tabular figures for Persian numbers */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Print / PDF Export Styling */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .print\:hidden,
+  header,
+  footer,
+  nav {
+    display: none !important;
+  }
+
+  main {
+    padding-top: 0 !important;
+  }
+
+  /* Prevent page breaks inside cards */
+  article, .rounded-3xl, .rounded-2xl {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #d1d5db !important;
+  }
+}
