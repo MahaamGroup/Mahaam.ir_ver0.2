@@ -191,7 +191,7 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate }) => {
                 currentPath === '/about' ? 'text-[#0C2340] font-bold' : ''
               }`}
             >
-              <span>درباره مهام</span>
+              <span>درباره گروه مهام</span>
             </button>
 
             <button
@@ -200,7 +200,7 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate }) => {
                 currentPath === '/contact' ? 'text-[#0C2340] font-bold' : ''
               }`}
             >
-              <span>ارتباط با ما</span>
+              <span>ارتباط با گروه مهام</span>
             </button>
           </nav>
 
@@ -293,14 +293,14 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate }) => {
                 onClick={() => handleLinkClick('/about')}
                 className="w-full text-right px-3 py-2 text-slate-700 hover:text-[#0C2340] hover:bg-slate-50 rounded-lg"
               >
-                درباره مهام
+                درباره گروه مهام
               </button>
 
               <button
                 onClick={() => handleLinkClick('/contact')}
                 className="w-full text-right px-3 py-2 text-slate-700 hover:text-[#0C2340] hover:bg-slate-50 rounded-lg"
               >
-                ارتباط با مهام
+                ارتباط با گروه مهام
               </button>
             </div>
 

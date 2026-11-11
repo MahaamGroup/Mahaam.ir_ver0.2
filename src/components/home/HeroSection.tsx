@@ -87,7 +87,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onNavigate }) => {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="text-sm text-slate-300/90 leading-relaxed max-w-xl pr-3 border-r-2 border-[#3658B6]"
             >
-              هر فرد و هر مجموعه، شرایط متفاوتی دارد. به همین دلیل مهام به جای ارائه یک مسیر یکسان برای همه، ابتدا به شناخت شرایط، اهداف و ظرفیت‌های شما کمک می‌کند تا مسیر مناسب‌تر مشخص شود.
+              هر فرد و هر مجموعه، شرایط متفاوتی دارد. به همین دلیل گروه مهام به جای ارائه یک مسیر یکسان برای همه، ابتدا به شناخت شرایط، اهداف و ظرفیت‌های شما کمک می‌کند تا مسیر مناسب‌تر مشخص شود.
             </motion.p>
 
             {/* Primary & Secondary Actions */}
@@ -109,7 +109,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onNavigate }) => {
                 onClick={() => onNavigate('/about')}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-medium text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all duration-200 cursor-pointer"
               >
-                <span>آشنایی با رویکرد مهام</span>
+                <span>آشنایی با رویکرد گروه مهام</span>
               </button>
             </motion.div>
 

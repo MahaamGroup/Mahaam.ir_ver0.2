@@ -1,5 +1,5 @@
 /**
- * Authentication and User Management Store
+ * Authentication, User Management, and Presence Store
  * Multi-role access control for Mahaam International Group
  */
 
@@ -19,16 +19,18 @@ export interface AdminUser {
 
 const USERS_STORAGE_KEY = 'mahaam_admin_users_db_v1';
 const CURRENT_USER_SESSION_KEY = 'mahaam_current_user_session_v1';
+const PRESENCE_STORAGE_KEY = 'mahaam_expert_presence_v1';
 const AUTH_EVENT = 'mahaam_auth_changed';
 const USERS_EVENT = 'mahaam_users_updated';
+const PRESENCE_EVENT = 'mahaam_presence_changed';
 
 const defaultUsers: AdminUser[] = [
   {
     id: 'user_admin',
     username: 'admin',
     password: 'admin',
-    fullName: 'مدیریت کل سامانه مهام',
-    displayName: 'مدیریت کل سامانه مهام',
+    fullName: 'مدیریت کل سامانه گروه مهام',
+    displayName: 'مدیریت کل سامانه گروه مهام',
     role: 'admin',
     department: 'مدیریت اجرایی و راهبردی',
     createdAt: '۱۴۰۳/۰۱/۰۱',
@@ -118,7 +120,12 @@ export const loginUser = (username: string, password: string): AdminUser | null 
   if (matched && typeof window !== 'undefined') {
     sessionStorage.setItem(CURRENT_USER_SESSION_KEY, JSON.stringify({ id: matched.id }));
     localStorage.setItem(CURRENT_USER_SESSION_KEY, JSON.stringify({ id: matched.id }));
+    
+    // Record presence
+    recordPresence(matched.id);
+    
     window.dispatchEvent(new Event(AUTH_EVENT));
+    window.dispatchEvent(new Event(PRESENCE_EVENT));
     return matched;
   }
   return null;
@@ -126,20 +133,49 @@ export const loginUser = (username: string, password: string): AdminUser | null 
 
 export const logoutUser = (): void => {
   if (typeof window !== 'undefined') {
+    const current = getCurrentUser();
+    if (current) {
+      removePresence(current.id);
+    }
     sessionStorage.removeItem(CURRENT_USER_SESSION_KEY);
     localStorage.removeItem(CURRENT_USER_SESSION_KEY);
     window.dispatchEvent(new Event(AUTH_EVENT));
+    window.dispatchEvent(new Event(PRESENCE_EVENT));
   }
 };
+
+function recordPresence(userId: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(PRESENCE_STORAGE_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    map[userId] = Date.now();
+    localStorage.setItem(PRESENCE_STORAGE_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+function removePresence(userId: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(PRESENCE_STORAGE_KEY);
+    if (raw) {
+      const map = JSON.parse(raw);
+      delete map[userId];
+      localStorage.setItem(PRESENCE_STORAGE_KEY, JSON.stringify(map));
+    }
+  } catch {}
+}
 
 export const authStore = {
   subscribe(callback: () => void) {
     if (typeof window === 'undefined') return () => {};
     window.addEventListener(AUTH_EVENT, callback);
     window.addEventListener(USERS_EVENT, callback);
+    window.addEventListener(PRESENCE_EVENT, callback);
     return () => {
       window.removeEventListener(AUTH_EVENT, callback);
       window.removeEventListener(USERS_EVENT, callback);
+      window.removeEventListener(PRESENCE_EVENT, callback);
     };
   },
 
@@ -157,6 +193,52 @@ export const authStore = {
 
   logout(): void {
     logoutUser();
+  },
+
+  /**
+   * Automatic detection of online experts:
+   * Returns true if any authenticated user is logged in or has active presence in the last 20 minutes.
+   */
+  areExpertsOnline(): boolean {
+    if (typeof window === 'undefined') return false;
+    
+    // Check manual override if any
+    const override = localStorage.getItem('mahaam_presence_manual_override');
+    if (override === 'online') return true;
+    if (override === 'offline') return false;
+
+    // Check active session of current window
+    const current = getCurrentUser();
+    if (current) return true;
+
+    // Check presence heartbeat of all experts
+    try {
+      const raw = localStorage.getItem(PRESENCE_STORAGE_KEY);
+      if (!raw) return false;
+      const map: Record<string, number> = JSON.parse(raw);
+      const now = Date.now();
+      const cutoff = 20 * 60 * 1000; // 20 minutes
+
+      const activeIds = Object.entries(map).filter(([_, ts]) => now - ts < cutoff);
+      return activeIds.length > 0;
+    } catch {
+      return false;
+    }
+  },
+
+  setPresenceOverride(status: 'auto' | 'online' | 'offline') {
+    if (typeof window === 'undefined') return;
+    if (status === 'auto') {
+      localStorage.removeItem('mahaam_presence_manual_override');
+    } else {
+      localStorage.setItem('mahaam_presence_manual_override', status);
+    }
+    window.dispatchEvent(new Event(PRESENCE_EVENT));
+  },
+
+  getPresenceOverride(): 'auto' | 'online' | 'offline' {
+    if (typeof window === 'undefined') return 'auto';
+    return (localStorage.getItem('mahaam_presence_manual_override') as any) || 'auto';
   },
 
   addUser(data: {

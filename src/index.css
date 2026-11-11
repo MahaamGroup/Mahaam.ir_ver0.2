@@ -22,6 +22,12 @@
   direction: rtl;
 }
 
+/* Global text justification for Persian editorial content */
+p, article p, .prose p, .text-justify, [data-justify="true"] {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

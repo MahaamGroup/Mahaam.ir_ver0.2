@@ -40,7 +40,7 @@ export const ProblemSolutionSection: React.FC<ProblemSolutionSectionProps> = ({ 
             </div>
 
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[#0C2340] leading-snug">
-              مسئله‌ای که مهام حل می‌کند
+              مسئله‌ای که گروه مهام حل می‌کند
             </h2>
 
             <p className="text-sm sm:text-base text-slate-700 leading-relaxed">
@@ -48,7 +48,7 @@ export const ProblemSolutionSection: React.FC<ProblemSolutionSectionProps> = ({ 
             </p>
 
             <p className="text-sm text-slate-600 leading-relaxed">
-              انبوه تبلیغات مهاجرتی، قوانین متغیر بین‌المللی و توصیه‌های تجربی دیگران معمولاً موجب سردرگمی می‌شود. مهام کمک می‌کند این پرسش‌ها ساختارمند، علمی و با آرامش بررسی شوند.
+              انبوه تبلیغات مهاجرتی، قوانین متغیر بین‌المللی و توصیه‌های تجربی دیگران معمولاً موجب سردرگمی می‌شود. گروه مهام کمک می‌کند این پرسش‌ها ساختارمند، علمی و با آرامش بررسی شوند.
             </p>
 
             <div className="pt-2">
@@ -56,7 +56,7 @@ export const ProblemSolutionSection: React.FC<ProblemSolutionSectionProps> = ({ 
                 onClick={() => onNavigate('/about')}
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-[#0C2340] bg-white hover:bg-slate-50 border border-[#BAC3CE] rounded-xl shadow-sm transition-all"
               >
-                <span>مطالعه نگرش و فلسفه مهام</span>
+                <span>مطالعه نگرش و فلسفه گروه مهام</span>
                 <ArrowLeft className="w-3.5 h-3.5" />
               </button>
             </div>

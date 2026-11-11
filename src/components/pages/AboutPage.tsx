@@ -16,7 +16,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
   });
   return (
     <div className="bg-[#F8F6F1] min-h-screen">
-      <Breadcrumbs items={[{ label: 'درباره مهام' }]} onNavigate={onNavigate} />
+      <Breadcrumbs items={[{ label: 'درباره گروه مهام' }]} onNavigate={onNavigate} />
 
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-[#081525] to-[#0C2340] text-white py-16 md:py-24 border-b border-white/10 text-right">
@@ -80,7 +80,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
       <section className="py-16 md:py-24 bg-[#EEF1F3] border-b border-[#BAC3CE]/40 text-right">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="max-w-2xl space-y-2">
-            <span className="text-xs font-semibold text-[#0D5A63] block">نگاه مهام</span>
+            <span className="text-xs font-semibold text-[#0D5A63] block">نگاه گروه مهام</span>
             <h2 className="text-2xl sm:text-3xl font-bold text-[#0C2340]">
               {aboutData.principlesSection.h2}
             </h2>

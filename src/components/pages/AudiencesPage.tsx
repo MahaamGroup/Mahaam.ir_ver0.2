@@ -11,7 +11,7 @@ interface AudiencesPageProps {
 export const AudiencesPage: React.FC<AudiencesPageProps> = ({ onNavigate }) => {
   useDocumentMeta({
     title: 'گروه‌های مخاطب و حوزه‌های تخصصی',
-    description: 'راهکارهای اختصاصی مهام برای کادر درمان، مدیران ارشد، حقوق‌دانان، صاحبان صنایع و سرمایه‌گذاران، و خانواده‌ها.',
+    description: 'راهکارهای اختصاصی گروه بین‌المللی مهام برای کادر درمان، مدیران ارشد، حقوق‌دانان، صاحبان صنایع و سرمایه‌گذاران، و خانواده‌ها.',
     canonicalPath: '/audiences'
   });
   const getAudienceIcon = (id: string) => {
@@ -110,7 +110,7 @@ export const AudiencesPage: React.FC<AudiencesPageProps> = ({ onNavigate }) => {
             <div className="space-y-2 text-right">
               <h3 className="text-xl font-bold">نمی‌دانید از کدام گروه شروع کنید؟</h3>
               <p className="text-xs sm:text-sm text-slate-300">
-                ابزار Decision Engine مهام ظرف ۳ دقیقه جایگاه و مسیر بهینه شما را مشخص می‌کند.
+                ابزار ارزیابی و تصمیم گروه مهام ظرف ۳ دقیقه جایگاه و مسیر بهینه شما را مشخص می‌کند.
               </p>
             </div>
             <button

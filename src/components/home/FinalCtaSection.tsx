@@ -49,7 +49,7 @@ export const FinalCtaSection: React.FC<FinalCtaSectionProps> = ({ onNavigate }) 
             onClick={() => onNavigate('/contact')}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 text-sm font-medium text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all duration-200 cursor-pointer"
           >
-            <span>ارتباط مستقیم با کارشناسان مهام</span>
+            <span>ارتباط مستقیم با کارشناسان گروه مهام</span>
           </button>
         </div>
 

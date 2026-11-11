@@ -19,6 +19,11 @@ import {
   ChatMessage 
 } from '../../lib/chatStore';
 import { 
+  aiKnowledgeStore, 
+  KnowledgeItem, 
+  AiKnowledgeConfig 
+} from '../../lib/aiKnowledgeStore';
+import { 
   ShieldCheck, 
   Search, 
   Filter, 
@@ -52,7 +57,14 @@ import {
   MessageSquare,
   Sparkles,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  BookOpen,
+  Plus,
+  Play,
+  Save,
+  Radio,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { useDocumentMeta } from '../../lib/useDocumentMeta';
 
@@ -62,8 +74,8 @@ interface AdminAssessmentsPageProps {
 
 export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNavigate }) => {
   useDocumentMeta({
-    title: 'سامانه جامع مدیریت و کارتابل کارشناسان مهام',
-    description: 'سامانه یکپارچه ممیزی پرونده‌های ارزیابی، مدیریت پاسخگویی چت آنلاین، دسترسی کارشناسان و امنیت اطلاعات گروه بین‌المللی مهام.',
+    title: 'سامانه جامع مدیریت و کارتابل کارشناسان گروه مهام',
+    description: 'سامانه یکپارچه ممیزی پرونده‌های ارزیابی، مدیریت پاسخگویی چت آنلاین، پایگاه دانش هوش مصنوعی و سطوح دسترسی کارشناسان گروه بین‌المللی مهام.',
     canonicalPath: '/admin'
   });
 
@@ -76,7 +88,11 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
   const [loginError, setLoginError] = useState('');
 
   // Active navigation tab
-  const [activeTab, setActiveTab] = useState<'cases' | 'chats' | 'trash' | 'users'>('cases');
+  const [activeTab, setActiveTab] = useState<'cases' | 'chats' | 'trash' | 'users' | 'ai_knowledge'>('cases');
+
+  // Presence state
+  const [isExpertsOnline, setIsExpertsOnline] = useState<boolean>(() => authStore.areExpertsOnline());
+  const [presenceOverride, setPresenceOverride] = useState<'auto' | 'online' | 'offline'>(() => authStore.getPresenceOverride());
 
   // Change self password modal
   const [showSelfPasswordModal, setShowSelfPasswordModal] = useState(false);
@@ -128,14 +144,44 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
   const [editingUserPasswordId, setEditingUserPasswordId] = useState<string | null>(null);
   const [changeUserPasswordValue, setChangeUserPasswordValue] = useState('');
 
-  // Subscribe to auth state
+  // --------------------------------------------------------------------------
+  // AI KNOWLEDGE BASE STATE (Senior Admin only)
+  // --------------------------------------------------------------------------
+  const [aiConfig, setAiConfig] = useState<AiKnowledgeConfig>(() => aiKnowledgeStore.getConfig());
+  const [aiPolicyText, setAiPolicyText] = useState(() => aiKnowledgeStore.getConfig().systemPolicy);
+  const [aiFallbackText, setAiFallbackText] = useState(() => aiKnowledgeStore.getConfig().strictModeFallbackMessage);
+  const [aiKbSearch, setAiKbSearch] = useState('');
+  const [aiKbCategoryFilter, setAiKbCategoryFilter] = useState<string>('all');
+  
+  // Knowledge item modal
+  const [showKnowledgeItemModal, setShowKnowledgeItemModal] = useState(false);
+  const [editingKnowledgeId, setEditingKnowledgeId] = useState<string | null>(null);
+  const [kbTitle, setKbTitle] = useState('');
+  const [kbCategory, setKbCategory] = useState<'health' | 'legal' | 'enterprise' | 'executive' | 'family' | 'general'>('general');
+  const [kbKeywordsText, setKbKeywordsText] = useState('');
+  const [kbApprovedResponse, setKbApprovedResponse] = useState('');
+  const [kbActionLabel, setKbActionLabel] = useState('');
+  const [kbActionUrl, setKbActionUrl] = useState('');
+
+  // AI Simulator
+  const [aiTestPrompt, setAiTestPrompt] = useState('');
+  const [aiTestResult, setAiTestResult] = useState<{
+    matched: boolean;
+    response: string;
+    matchedTitle?: string;
+  } | null>(null);
+
+  // Subscribe to auth state & presence
   useEffect(() => {
     const unsubAuth = authStore.subscribe(() => {
       const user = authStore.getCurrentUser();
       setCurrentUser(user);
       setAllUsers(authStore.getAllUsers());
+      setIsExpertsOnline(authStore.areExpertsOnline());
+      setPresenceOverride(authStore.getPresenceOverride());
     });
     setAllUsers(authStore.getAllUsers());
+    setIsExpertsOnline(authStore.areExpertsOnline());
     return () => unsubAuth();
   }, []);
 
@@ -145,17 +191,21 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
     setCases(getAssessmentsForUser(currentUser.id, currentUser.role));
     setChats(chatStore.getActiveSessions(currentUser.role === 'expert' ? currentUser.id : undefined));
     setAllUsers(authStore.getAllUsers());
+    setAiConfig(aiKnowledgeStore.getConfig());
   };
 
   useEffect(() => {
     loadData();
     const handleCaseUpdate = () => loadData();
-    const handleChatUpdate = () => loadData();
     window.addEventListener('mahaam_assessments_updated', handleCaseUpdate);
     const unsubChats = chatStore.subscribe(loadData);
+    const unsubAi = aiKnowledgeStore.subscribe(() => {
+      setAiConfig(aiKnowledgeStore.getConfig());
+    });
     return () => {
       window.removeEventListener('mahaam_assessments_updated', handleCaseUpdate);
       unsubChats();
+      unsubAi();
     };
   }, [currentUser]);
 
@@ -213,7 +263,14 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
     }
   };
 
-  // Experts list for assignment (only active experts)
+  // Presence Override Change
+  const handlePresenceOverrideChange = (mode: 'auto' | 'online' | 'offline') => {
+    authStore.setPresenceOverride(mode);
+    setPresenceOverride(mode);
+    setIsExpertsOnline(authStore.areExpertsOnline());
+  };
+
+  // Experts list for assignment
   const expertUsers = useMemo(() => {
     return allUsers.filter(u => u.isActive && (u.role === 'expert' || u.role === 'senior_expert'));
   }, [allUsers]);
@@ -257,7 +314,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
   const handleExecuteBatchAssign = () => {
     if (selectedCaseIds.length === 0 || batchTargetExpertIds.length === 0) return;
     const targetExperts = allUsers.filter(u => batchTargetExpertIds.includes(u.id));
-    const expertNames = targetExperts.map(u => `${u.displayName} (${u.department || 'کارشناس'})`);
+    const expertNames = targetExperts.map(u => `${u.displayName} (${u.department || 'کارشناس گروه مهام'})`);
 
     assignCasesToExperts(selectedCaseIds, batchTargetExpertIds, expertNames);
     setShowBatchAssignModal(false);
@@ -344,7 +401,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
   const handleAssignChat = (chatId: string, expertId: string) => {
     const expert = allUsers.find(u => u.id === expertId);
     if (!expert) return;
-    chatStore.assignSession(chatId, expertId, `${expert.displayName} (${expert.department || 'کارشناس'})`);
+    chatStore.assignSession(chatId, expertId, `${expert.displayName} (${expert.department || 'کارشناس گروه مهام'})`);
     loadData();
   };
 
@@ -392,6 +449,91 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
   };
 
   // --------------------------------------------------------------------------
+  // AI KNOWLEDGE BASE HANDLERS
+  // --------------------------------------------------------------------------
+  const handleSavePolicyAndFallback = () => {
+    aiKnowledgeStore.updateSystemPolicy(aiPolicyText, aiFallbackText);
+    alert('دستورالعمل‌ها و پیام عدم تطابق هوش مصنوعی با موفقیت ذخیره شدند.');
+  };
+
+  const handleOpenAddKnowledge = () => {
+    setEditingKnowledgeId(null);
+    setKbTitle('');
+    setKbCategory('general');
+    setKbKeywordsText('');
+    setKbApprovedResponse('');
+    setKbActionLabel('');
+    setKbActionUrl('');
+    setShowKnowledgeItemModal(true);
+  };
+
+  const handleOpenEditKnowledge = (item: KnowledgeItem) => {
+    setEditingKnowledgeId(item.id);
+    setKbTitle(item.title);
+    setKbCategory(item.category);
+    setKbKeywordsText(item.keywords.join(', '));
+    setKbApprovedResponse(item.approvedResponse);
+    setKbActionLabel(item.suggestedActionLabel || '');
+    setKbActionUrl(item.suggestedActionUrl || '');
+    setShowKnowledgeItemModal(true);
+  };
+
+  const handleSaveKnowledgeItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    const keywords = kbKeywordsText
+      .split(/[,،\n]/)
+      .map(k => k.trim())
+      .filter(Boolean);
+
+    if (!kbTitle.trim() || !kbApprovedResponse.trim() || keywords.length === 0) {
+      alert('لطفاً عنوان، حداقل یک کلیدواژه و متن پاسخ مصوب را وارد نمایید.');
+      return;
+    }
+
+    if (editingKnowledgeId) {
+      aiKnowledgeStore.updateItem(editingKnowledgeId, {
+        title: kbTitle.trim(),
+        category: kbCategory,
+        keywords,
+        approvedResponse: kbApprovedResponse.trim(),
+        suggestedActionLabel: kbActionLabel.trim() || undefined,
+        suggestedActionUrl: kbActionUrl.trim() || undefined
+      });
+    } else {
+      aiKnowledgeStore.addItem({
+        title: kbTitle.trim(),
+        category: kbCategory,
+        keywords,
+        approvedResponse: kbApprovedResponse.trim(),
+        suggestedActionLabel: kbActionLabel.trim() || undefined,
+        suggestedActionUrl: kbActionUrl.trim() || undefined
+      });
+    }
+
+    setShowKnowledgeItemModal(false);
+    loadData();
+  };
+
+  const handleDeleteKnowledgeItem = (id: string) => {
+    if (confirm('آیا از حذف این ورودی پایگاه دانش اطمینان دارید؟')) {
+      aiKnowledgeStore.deleteItem(id);
+      loadData();
+    }
+  };
+
+  const handleTestAiQuery = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiTestPrompt.trim()) return;
+
+    const res = aiKnowledgeStore.findStrictMatch(aiTestPrompt);
+    setAiTestResult({
+      matched: res.matchedItem !== null,
+      response: res.response,
+      matchedTitle: res.matchedItem?.title
+    });
+  };
+
+  // --------------------------------------------------------------------------
   // RENDER: LOGIN GATE IF NOT AUTHENTICATED
   // --------------------------------------------------------------------------
   if (!currentUser) {
@@ -406,9 +548,9 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                 className="h-10 w-auto object-contain mx-auto" 
               />
             </div>
-            <h1 className="text-xl font-bold text-[#0C2340]">سامانه احراز هویت کارشناسان مهام</h1>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              جهت ورود به کارتابل ارزیابی‌ها، پاسخگویی به چت‌ها و دسترسی به اطلاعات متقاضیان، وارد حساب کاربری خود شوید.
+            <h1 className="text-xl font-bold text-[#0C2340]">سامانه احراز هویت کارشناسان گروه مهام</h1>
+            <p className="text-xs text-slate-500 leading-relaxed text-justify text-justify-inter-word">
+              جهت ورود به کارتابل ارزیابی‌ها، پاسخگویی به چت‌ها، مدیریت پایگاه دانش هوش مصنوعی و دسترسی به اطلاعات متقاضیان، وارد حساب کاربری خود شوید.
             </p>
           </div>
 
@@ -464,8 +606,8 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
             <div className="font-mono text-left dir-ltr bg-white/80 p-1.5 rounded text-[11px]">
               username: <span className="font-bold text-[#0C2340]">admin</span> | password: <span className="font-bold text-[#0C2340]">admin</span>
             </div>
-            <span className="text-[10px] text-amber-700 block pt-0.5">
-              (پس از ورود، مدیر می‌تواند رمز عبور خود را تغییر دهد و برای سایر کارشناسان نام کاربری و رمز تعریف کند.)
+            <span className="text-[10px] text-amber-700 block pt-0.5 text-justify text-justify-inter-word">
+              (پس از ورود، مدیر ارشد می‌تواند رمز عبور خود را تغییر دهد و برای سایر کارشناسان دسترسی تعریف کند.)
             </span>
           </div>
 
@@ -474,7 +616,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
               onClick={() => onNavigate('/')}
               className="text-xs text-slate-500 hover:text-[#3658B6] transition-colors"
             >
-              ← بازگشت به صفحه اصلی وب‌سایت مهام
+              ← بازگشت به صفحه اصلی وب‌سایت گروه مهام
             </button>
           </div>
         </div>
@@ -493,7 +635,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
 
   return (
     <div className="bg-[#F8F6F1] min-h-screen text-right font-sans">
-      <Breadcrumbs items={[{ label: 'سامانه مدیریت مهام (/admin)' }]} onNavigate={onNavigate} />
+      <Breadcrumbs items={[{ label: 'سامانه مدیریت گروه مهام (/admin)' }]} onNavigate={onNavigate} />
 
       {/* Top Header & Session Bar */}
       <section className="bg-gradient-to-b from-[#081525] to-[#0C2340] text-white py-6 border-b border-white/10">
@@ -506,7 +648,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-lg sm:text-xl font-bold text-white">سامانه مدیریت و کارتابل مهام</h1>
+                  <h1 className="text-lg sm:text-xl font-bold text-white">سامانه مدیریت و کارتابل گروه مهام</h1>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                     currentUser.role === 'admin' 
                       ? 'bg-amber-400 text-amber-950' 
@@ -515,6 +657,16 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                       : 'bg-emerald-400 text-emerald-950'
                   }`}>
                     {currentUser.role === 'admin' ? 'مدیر ارشد سامانه' : currentUser.role === 'senior_expert' ? 'کارشناس ارشد' : 'کارشناس'}
+                  </span>
+
+                  {/* Presence indicator */}
+                  <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border ${
+                    isExpertsOnline 
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                      : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isExpertsOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                    <span>{isExpertsOnline ? 'وضعیت: آنلاین' : 'وضعیت: آفلاین'}</span>
                   </span>
                 </div>
                 <span className="text-xs text-[#9FC9E8]">
@@ -578,6 +730,23 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                 {chats.length}
               </span>
             </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('ai_knowledge')}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === 'ai_knowledge'
+                    ? 'bg-white text-[#0C2340] shadow-md'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+              >
+                <BookOpen className="w-4 h-4 text-purple-600" />
+                <span>پایگاه دانش هوش مصنوعی (مدیر ارشد)</span>
+                <span className="text-[10px] bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded-full font-mono">
+                  {aiConfig.items.length}
+                </span>
+              </button>
+            )}
 
             <button
               onClick={() => setActiveTab('trash')}
@@ -682,7 +851,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                         <option value="all">فیلتر کارشناس: همه</option>
                         {expertUsers.map(exp => (
                           <option key={exp.id} value={exp.id}>
-                            {exp.displayName} ({exp.department || 'کارشناس'})
+                            {exp.displayName} ({exp.department || 'کارشناس گروه مهام'})
                           </option>
                         ))}
                       </select>
@@ -851,7 +1020,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                               </a>
                             </div>
 
-                            <div className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                            <div className="text-xs text-slate-600 line-clamp-2 leading-relaxed text-justify text-justify-inter-word">
                               <strong className="text-slate-700 ml-1">خواسته:</strong>
                               {item.mainObjective}
                             </div>
@@ -860,7 +1029,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                             {item.assignedExpertNames && item.assignedExpertNames.length > 0 && (
                               <div className="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1">
                                 <Users className="w-3 h-3 text-[#0D5A63]" />
-                                <span>کارشناسان پرونده:</span>
+                                <span>کارشناسان پرونده در گروه مهام:</span>
                                 <span className="font-semibold text-[#0C2340]">
                                   {item.assignedExpertNames.join('، ')}
                                 </span>
@@ -966,7 +1135,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                         {activeCase.additionalNotes && (
                           <div className="space-y-1 pt-2 border-t border-[#EEF1F3]">
                             <span className="text-xs font-semibold text-slate-700 block">توضیحات تکمیلی متقاضی:</span>
-                            <p className="text-xs text-slate-600 bg-[#F8F6F1] p-3 rounded-xl leading-relaxed whitespace-pre-line">
+                            <p className="text-xs text-slate-600 bg-[#F8F6F1] p-3 rounded-xl leading-relaxed whitespace-pre-line text-justify text-justify-inter-word">
                               {activeCase.additionalNotes}
                             </p>
                           </div>
@@ -974,13 +1143,13 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
 
                         {/* Internal staff notes */}
                         <div className="space-y-2 pt-2 border-t border-[#EEF1F3]">
-                          <span className="text-xs font-bold text-[#0C2340] block">یادداشت داخلی کارشناسان مهام:</span>
+                          <span className="text-xs font-bold text-[#0C2340] block">یادداشت داخلی کارشناسان گروه مهام:</span>
                           <textarea
                             rows={3}
                             value={caseNoteInput}
                             onChange={(e) => setCaseNoteInput(e.target.value)}
                             placeholder="ثبت اقدامات صورت گرفته، نیاز به ترجمه یا ارجاع..."
-                            className="w-full text-xs p-2.5 rounded-xl border border-[#BAC3CE]/60 focus:border-[#3658B6] focus:outline-none"
+                            className="w-full text-xs p-2.5 rounded-xl border border-[#BAC3CE]/60 focus:border-[#3658B6] focus:outline-none text-justify text-justify-inter-word"
                           />
                           <button
                             onClick={() => handleSaveCaseNote(activeCase.id)}
@@ -994,7 +1163,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                       <div className="bg-white rounded-3xl p-8 border border-[#BAC3CE]/40 text-center space-y-3">
                         <Eye className="w-8 h-8 text-slate-400 mx-auto" />
                         <h4 className="text-sm font-bold text-[#0C2340]">یک پرونده را انتخاب فرمایید</h4>
-                        <p className="text-xs text-slate-500 leading-relaxed">
+                        <p className="text-xs text-slate-500 leading-relaxed text-justify text-justify-inter-word">
                           برای مشاهده پاسخ‌های ۵ مرحله، شماره تماس و درج یادداشت ممیزی روی کارت پرونده کلیک کنید.
                         </p>
                       </div>
@@ -1088,7 +1257,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                             </div>
                           )}
 
-                          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed text-justify text-justify-inter-word">
                             {session.lastMessageSnippet}
                           </p>
 
@@ -1142,7 +1311,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                             }}
                             className="text-[11px] bg-white/10 text-white rounded-xl px-2 py-1.5 border border-white/20"
                           >
-                            <option value="" className="text-slate-800">ارجاع به کارشناس...</option>
+                            <option value="" className="text-slate-800">ارجاع به کارشناس گروه مهام...</option>
                             {expertUsers.map(u => (
                               <option key={u.id} value={u.id} className="text-slate-800">
                                 {u.displayName}
@@ -1182,16 +1351,16 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                               {isUser ? (
                                 <span className="font-bold text-slate-600">{selectedChat.userName || 'کاربر'}</span>
                               ) : isExpert ? (
-                                <span className="font-bold text-emerald-800">{msg.senderName} (کارشناس)</span>
+                                <span className="font-bold text-emerald-800">{msg.senderName} (کارشناس گروه مهام)</span>
                               ) : (
-                                <span className="text-[#3658B6]">دستیار هوشمند مهام</span>
+                                <span className="text-[#3658B6]">مشاور هوشمند گروه مهام</span>
                               )}
                               <span>·</span>
                               <span>{new Date(msg.timestamp).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
 
                             <div
-                              className={`max-w-[80%] rounded-2xl p-3 text-xs leading-relaxed ${
+                              className={`max-w-[80%] rounded-2xl p-3 text-xs leading-relaxed text-justify text-justify-inter-word ${
                                 isUser
                                   ? 'bg-white text-slate-800 border border-[#BAC3CE]/40 rounded-tl-none shadow-xs'
                                   : isExpert
@@ -1231,8 +1400,8 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                   <div className="bg-white rounded-3xl p-16 border border-[#BAC3CE]/40 text-center space-y-3 h-[650px] flex flex-col justify-center items-center">
                     <MessageSquare className="w-10 h-10 text-slate-300" />
                     <h4 className="text-sm font-bold text-[#0C2340]">یک گفتگو را از ستون سمت راست انتخاب فرمایید</h4>
-                    <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
-                      کلیه پیام‌های ارسال‌شده توسط کاربران در اینجا ذخیره شده و می‌توانید پاسخ رسمی کارشناس را ارسال کنید.
+                    <p className="text-xs text-slate-500 max-w-xs leading-relaxed text-justify text-justify-inter-word">
+                      کلیه پیام‌های ارسال‌شده توسط متقاضیان در اینجا ذخیره شده و می‌توانید پاسخ رسمی کارشناس گروه مهام را ارسال فرمایید.
                     </p>
                   </div>
                 )}
@@ -1242,7 +1411,297 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
           )}
 
           {/* ================================================================ */}
-          {/* TAB 3: TRASH CAN (Cases & Chats)                                 */}
+          {/* TAB 3: AI KNOWLEDGE BASE (ADMIN ONLY)                            */}
+          {/* ================================================================ */}
+          {activeTab === 'ai_knowledge' && isAdmin && (
+            <div className="space-y-6">
+              
+              {/* Presence & Online/Offline Control Card */}
+              <div className="bg-white rounded-3xl p-5 border border-[#BAC3CE]/40 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-[#0C2340] flex items-center gap-2">
+                    <Radio className="w-5 h-5 text-emerald-600 animate-pulse" />
+                    <span>وضعیت آنلاین / آفلاین کارشناسان در سایت</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 text-justify text-justify-inter-word">
+                    وضعیت فعلی در حال نمایش به کاربران: <strong className={isExpertsOnline ? 'text-emerald-700' : 'text-amber-700'}>
+                      {isExpertsOnline ? 'کارشناسان گروه مهام آنلاین هستند' : 'کارشناسان آفلاین هستند'}
+                    </strong>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 bg-[#F8F6F1] p-1.5 rounded-2xl border border-slate-200">
+                  <button
+                    onClick={() => handlePresenceOverrideChange('auto')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                      presenceOverride === 'auto'
+                        ? 'bg-[#0C2340] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    تشخیص خودکار (لاگین کارشناس)
+                  </button>
+                  <button
+                    onClick={() => handlePresenceOverrideChange('online')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                      presenceOverride === 'online'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    اجبار به آنلاین
+                  </button>
+                  <button
+                    onClick={() => handlePresenceOverrideChange('offline')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                      presenceOverride === 'offline'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    اجبار به آفلاین
+                  </button>
+                </div>
+              </div>
+
+              {/* Policy & Fallback Box */}
+              <div className="bg-white rounded-3xl p-6 border border-[#BAC3CE]/40 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-[#EEF1F3] pb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#0C2340] flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-purple-600" />
+                      <span>قوانین رفتاری و پیام عدم تطابق هوش مصنوعی</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      هوش مصنوعی منحصراً و بدون کوچک‌ترین استنتاج اضافه، تنها از کارت‌های پایگاه دانش استفاده می‌کند و در صورت عدم تطابق پیام زیر را صادر می‌کند.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleSavePolicyAndFallback}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0C2340] hover:bg-[#3658B6] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>ذخیره دستورالعمل‌ها</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      پیام صریح عدم تطابق (Strict Fallback):
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={aiFallbackText}
+                      onChange={(e) => setAiFallbackText(e.target.value)}
+                      className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:border-[#3658B6] focus:outline-none leading-relaxed text-justify text-justify-inter-word"
+                      placeholder="متن پیامی که در صورت عدم تطابق با پایگاه دانش به کاربر داده می‌شود..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      متن سیاست کلی هوش مصنوعی (System Policy):
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={aiPolicyText}
+                      onChange={(e) => setAiPolicyText(e.target.value)}
+                      className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:border-[#3658B6] focus:outline-none leading-relaxed text-justify text-justify-inter-word"
+                      placeholder="چارچوب هویتی و رفتاری مشاور هوشمند..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Live AI Query Simulator */}
+              <div className="bg-purple-50/50 rounded-3xl p-5 border border-purple-200/80 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-purple-950 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-600" />
+                    <span>شبیه‌ساز و آزمون زنده هوش مصنوعی</span>
+                  </h4>
+                  <span className="text-[11px] text-purple-700 font-medium">
+                    بررسی رفتار مشاور با پایگاه داده فعلی
+                  </span>
+                </div>
+
+                <form onSubmit={handleTestAiQuery} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={aiTestPrompt}
+                    onChange={(e) => setAiTestPrompt(e.target.value)}
+                    placeholder="یک پرسش فرضی کاربر را وارد کنید (مثال: شرایط معادل‌سازی پزشکان، هزینه ویزای کار، ثبت شرکت)..."
+                    className="flex-1 text-xs px-3.5 py-2.5 rounded-xl border border-purple-200 bg-white focus:outline-none focus:border-purple-600"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>آزمون تطابق</span>
+                  </button>
+                </form>
+
+                {aiTestResult && (
+                  <div className={`p-3.5 rounded-2xl border text-xs space-y-1.5 ${
+                    aiTestResult.matched 
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-950' 
+                      : 'bg-amber-50 border-amber-300 text-amber-950'
+                  }`}>
+                    <div className="flex items-center justify-between font-bold">
+                      <span>{aiTestResult.matched ? 'تطابق با پایگاه دانش یافت شد' : 'عدم تطابق - اجرای پروتکل سخت‌گیرانه (Fallback)'}</span>
+                      {aiTestResult.matchedTitle && (
+                        <span className="text-[11px] bg-emerald-200/70 text-emerald-900 px-2 py-0.5 rounded-md">
+                          موضوع: {aiTestResult.matchedTitle}
+                        </span>
+                      )}
+                    </div>
+                    <p className="leading-relaxed text-justify text-justify-inter-word pt-1">
+                      {aiTestResult.response}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Knowledge Base Items Header & Actions */}
+              <div className="bg-white rounded-3xl p-5 border border-[#BAC3CE]/40 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#0C2340] flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-purple-600" />
+                      <span>کارت‌های پرسش و پاسخ مصوب پایگاه دانش ({aiConfig.items.length})</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      اطلاعات دقیق و مصوبی که مشاور هوش مصنوعی مجاز است از آن‌ها در پاسخگویی به متقاضیان استفاده نماید.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleOpenAddKnowledge}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#0C2340] hover:bg-[#3658B6] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-xs shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>افزودن ورودی دانش جدید</span>
+                  </button>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={aiKbSearch}
+                      onChange={(e) => setAiKbSearch(e.target.value)}
+                      placeholder="جستجو در عناوین، کلیدواژه‌ها یا پاسخ‌های مصوب..."
+                      className="w-full text-xs pr-8 pl-3 py-2 bg-[#F8F6F1] rounded-xl border border-transparent focus:border-[#3658B6] focus:bg-white text-right"
+                    />
+                  </div>
+
+                  <select
+                    value={aiKbCategoryFilter}
+                    onChange={(e) => setAiKbCategoryFilter(e.target.value)}
+                    className="text-xs py-2 px-3 rounded-xl border border-slate-300 bg-[#F8F6F1] text-slate-800"
+                  >
+                    <option value="all">همه دسته‌بندی‌ها</option>
+                    <option value="health">کادر درمان و سلامت</option>
+                    <option value="legal">حقوق بین‌الملل و لاهه</option>
+                    <option value="enterprise">شرکت‌ها و تجارت فرامرزی</option>
+                    <option value="executive">مدیران ارشد اجرایی</option>
+                    <option value="family">خانواده و آینده تحصیلی</option>
+                    <option value="general">عمومی و اطلاعات تماس</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Knowledge Base Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {aiConfig.items
+                  .filter(item => {
+                    const matchesCat = aiKbCategoryFilter === 'all' || item.category === aiKbCategoryFilter;
+                    if (!aiKbSearch.trim()) return matchesCat;
+                    const q = aiKbSearch.toLowerCase();
+                    const inTitle = item.title.toLowerCase().includes(q);
+                    const inKw = item.keywords.some(k => k.toLowerCase().includes(q));
+                    const inResp = item.approvedResponse.toLowerCase().includes(q);
+                    return matchesCat && (inTitle || inKw || inResp);
+                  })
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className="bg-white rounded-3xl p-5 border border-[#BAC3CE]/40 shadow-sm space-y-3 flex flex-col justify-between"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-2 border-b border-[#EEF1F3] pb-2.5">
+                          <div>
+                            <span className="text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md font-semibold">
+                              {item.category === 'health' ? 'کادر درمان و سلامت' :
+                               item.category === 'legal' ? 'حقوق بین‌الملل و لاهه' :
+                               item.category === 'enterprise' ? 'شرکت‌ها و سرمایه‌گذاری' :
+                               item.category === 'executive' ? 'مدیران ارشد' :
+                               item.category === 'family' ? 'خانواده و تحصیلی' : 'عمومی و تماس'}
+                            </span>
+                            <h4 className="text-sm font-bold text-[#0C2340] mt-1.5">
+                              {item.title}
+                            </h4>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleOpenEditKnowledge(item)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                              title="ویرایش"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteKnowledgeItem(item.id)}
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                              title="حذف"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Keywords */}
+                        <div>
+                          <span className="text-[11px] font-bold text-slate-500 block mb-1">کلیدواژه‌های محرک:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {item.keywords.map((kw, idx) => (
+                              <span key={idx} className="text-[10px] bg-[#EEF1F3] text-slate-700 px-2 py-0.5 rounded-md">
+                                {kw}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Approved Response */}
+                        <div>
+                          <span className="text-[11px] font-bold text-slate-500 block mb-1">پاسخ مصوب هوش مصنوعی:</span>
+                          <p className="text-xs text-slate-700 bg-[#F8F6F1] p-3 rounded-2xl leading-relaxed text-justify text-justify-inter-word">
+                            {item.approvedResponse}
+                          </p>
+                        </div>
+                      </div>
+
+                      {item.suggestedActionLabel && (
+                        <div className="pt-2 border-t border-[#EEF1F3] flex items-center justify-between text-[11px] text-slate-500">
+                          <span>دکمه پیشنهادی: <strong className="text-[#0C2340]">{item.suggestedActionLabel}</strong></span>
+                          <span className="font-mono text-[10px] text-slate-400">{item.suggestedActionUrl}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+
+            </div>
+          )}
+
+          {/* ================================================================ */}
+          {/* TAB 4: TRASH CAN (Cases & Chats)                                 */}
           {/* ================================================================ */}
           {activeTab === 'trash' && (
             <div className="space-y-6">
@@ -1252,7 +1711,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                     <Trash2 className="w-5 h-5 text-red-500" />
                     <span>سطل زباله و موارد حذف‌شده</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-1 text-justify text-justify-inter-word">
                     موارد انتقال‌یافته به سطل زباله قابل بازیابی مجدد هستند یا می‌توانید آن‌ها را به صورت دائمی حذف فرمایید.
                   </p>
                 </div>
@@ -1375,7 +1834,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
           )}
 
           {/* ================================================================ */}
-          {/* TAB 4: USERS & PERMISSIONS MANAGEMENT (ADMIN ONLY)               */}
+          {/* TAB 5: USERS & PERMISSIONS MANAGEMENT (ADMIN ONLY)               */}
           {/* ================================================================ */}
           {activeTab === 'users' && isAdmin && (
             <div className="space-y-6">
@@ -1383,9 +1842,9 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                 <div>
                   <h3 className="text-base font-bold text-[#0C2340] flex items-center gap-2">
                     <Users className="w-5 h-5 text-amber-500" />
-                    <span>مدیریت کاربران، کارشناسان و سطوح دسترسی</span>
+                    <span>مدیریت کاربران، کارشناسان و سطوح دسترسی گروه مهام</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-1 text-justify text-justify-inter-word">
                     تنها مدیر ارشد سامانه به این بخش دسترسی دارد و می‌تواند کارشناسان جدید تعریف نموده، پسوردها را مشاهده یا ویرایش کند.
                   </p>
                 </div>
@@ -1489,6 +1948,121 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
       </section>
 
       {/* ==================================================================== */}
+      {/* MODAL: ADD / EDIT AI KNOWLEDGE ITEM                                  */}
+      {/* ==================================================================== */}
+      {showKnowledgeItemModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans text-right">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-[#0C2340]">
+                {editingKnowledgeId ? 'ویرایش ورودی پایگاه دانش هوش مصنوعی' : 'افزودن ورودی جدید به پایگاه دانش'}
+              </h3>
+              <button onClick={() => setShowKnowledgeItemModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveKnowledgeItem} className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">عنوان موضوع</label>
+                <input
+                  type="text"
+                  required
+                  value={kbTitle}
+                  onChange={(e) => setKbTitle(e.target.value)}
+                  placeholder="مثال: شرایط معادل‌سازی مدارک کادر درمان..."
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">دسته‌بندی تخصصی</label>
+                <select
+                  value={kbCategory}
+                  onChange={(e) => setKbCategory(e.target.value as any)}
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white"
+                >
+                  <option value="health">کادر درمان و سلامت</option>
+                  <option value="legal">حقوق بین‌الملل و لاهه</option>
+                  <option value="enterprise">شرکت‌ها و سرمایه‌گذاری</option>
+                  <option value="executive">مدیران ارشد اجرایی</option>
+                  <option value="family">خانواده و آینده تحصیلی</option>
+                  <option value="general">عمومی، ریسک و اطلاعات تماس</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  کلیدواژه‌های محرک (با کاما یا ویرگول جدا کنید):
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={kbKeywordsText}
+                  onChange={(e) => setKbKeywordsText(e.target.value)}
+                  placeholder="پزشک، معادل‌سازی، آپروباسیون، پرستاری، DHA..."
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  پاسخ مصوب و رسمی هوش مصنوعی:
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  value={kbApprovedResponse}
+                  onChange={(e) => setKbApprovedResponse(e.target.value)}
+                  placeholder="متن دقیقی که هوش مصنوعی مجاز است در پاسخ به کاربر ارسال نماید..."
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none leading-relaxed text-justify text-justify-inter-word"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">عنوان دکمه پیشنهادی (اختیاری)</label>
+                  <input
+                    type="text"
+                    value={kbActionLabel}
+                    onChange={(e) => setKbActionLabel(e.target.value)}
+                    placeholder="مثال: مشاهده مسیر کادر درمان"
+                    className="w-full text-xs p-2 rounded-xl border border-slate-300"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">لینک یا اکشن دکمه</label>
+                  <input
+                    type="text"
+                    value={kbActionUrl}
+                    onChange={(e) => setKbActionUrl(e.target.value)}
+                    placeholder="مثال: /journeys/clinical-healthcare یا handoff"
+                    className="w-full text-xs p-2 rounded-xl border border-slate-300 font-mono dir-ltr text-right"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowKnowledgeItemModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                >
+                  انصراف
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#0C2340] hover:bg-[#3658B6] text-white text-xs font-bold"
+                >
+                  ذخیره در پایگاه دانش
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
       {/* MODAL: BATCH ASSIGN CASES TO EXPERTS                                 */}
       {/* ==================================================================== */}
       {showBatchAssignModal && (
@@ -1503,8 +2077,8 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 leading-relaxed">
-              کارشناس یا کارشناسان موردنظر را جهت رسیدگی به پرونده‌های انتخاب‌شده علامت بزنید:
+            <p className="text-xs text-slate-500 leading-relaxed text-justify text-justify-inter-word">
+              کارشناس یا کارشناسان موردنظر را جهت رسیدگی به پرونده‌های انتخاب‌شده در گروه مهام علامت بزنید:
             </p>
 
             <div className="space-y-2 max-h-56 overflow-y-auto">
@@ -1518,7 +2092,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
                   >
                     <div>
                       <span className="font-bold text-[#0C2340] block">{exp.displayName}</span>
-                      <span className="text-[11px] text-slate-500">{exp.department || 'کارشناس'}</span>
+                      <span className="text-[11px] text-slate-500">{exp.department || 'کارشناس گروه مهام'}</span>
                     </div>
                     <input
                       type="checkbox"
@@ -1656,7 +2230,7 @@ export const AdminAssessmentsPage: React.FC<AdminAssessmentsPageProps> = ({ onNa
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">دپارتمان تخصصی</label>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">دپارتمان تخصصی در گروه مهام</label>
                 <input
                   type="text"
                   value={newDepartment}

@@ -25,7 +25,7 @@ export const FaqPage: React.FC<FaqPageProps> = ({ onNavigate }) => {
 
   const categories = [
     { id: 'all', label: 'همه پرسش‌ها' },
-    { id: 'general', label: 'رویکرد عمومی مهام' },
+    { id: 'general', label: 'رویکرد عمومی گروه مهام' },
     { id: 'audiences', label: 'گروه‌های مخاطب' },
     { id: 'journeys', label: 'مسیرهای بین‌المللی' },
     { id: 'decision', label: 'موتور تصمیم‌گیری' },
@@ -162,7 +162,7 @@ export const FaqPage: React.FC<FaqPageProps> = ({ onNavigate }) => {
               </div>
               <h3 className="text-base font-bold text-[#0C2340]">پرسشی با عبارت مورد نظر پیدا نشد</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                می‌توانید عبارت جستجو را ویرایش کنید یا پرسش اختصاصی خود را با کارشناسان مهام در میان بگذارید.
+                می‌توانید عبارت جستجو را ویرایش کنید یا پرسش اختصاصی خود را با کارشناسان گروه مهام در میان بگذارید.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <button
@@ -189,7 +189,7 @@ export const FaqPage: React.FC<FaqPageProps> = ({ onNavigate }) => {
             <div className="space-y-2 text-right">
               <h3 className="text-lg sm:text-xl font-bold">پاسخ سوال خود را پیدا نکردید؟</h3>
               <p className="text-xs sm:text-sm text-slate-300">
-                مشاوران مهام آماده پاسخ‌گویی به شرایط و پرسش‌های منحصربه‌فرد شما هستند.
+                کارشناسان گروه مهام آماده پاسخ‌گویی به شرایط و پرسش‌های منحصربه‌فرد شما هستند.
               </p>
             </div>
             <button

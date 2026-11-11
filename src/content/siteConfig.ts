@@ -36,7 +36,7 @@ export const siteConfig = {
     { label: 'ارزیابی مسیر', href: '/decision-engine' },
     { label: 'تجربه‌ها', href: '/experiences' },
     { label: 'بینش‌ها', href: '/insights' },
-    { label: 'درباره مهام', href: '/about' },
+    { label: 'درباره گروه مهام', href: '/about' },
     { label: 'ارتباط با ما', href: '/contact' },
   ],
 

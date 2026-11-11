@@ -32,7 +32,7 @@ export const ExperiencesPage: React.FC<ExperiencesPageProps> = ({ onNavigate }) 
           </h1>
 
           <p className="text-base sm:text-lg text-slate-200 leading-relaxed max-w-2xl">
-            روایت مستند متخصصان، وکلا، مدیران و کارآفرینانی که با رویکرد تحلیلی مهام، مسیرهای بین‌المللی خود را سنجیده و پایه‌ریزی کردند.
+            روایت مستند متخصصان، وکلا، مدیران و کارآفرینانی که با رویکرد تحلیلی گروه مهام، مسیرهای بین‌المللی خود را سنجیده و پایه‌ریزی کردند.
           </p>
         </div>
       </section>

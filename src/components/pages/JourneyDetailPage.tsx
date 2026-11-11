@@ -11,7 +11,7 @@ interface JourneyDetailPageProps {
 
 export const JourneyDetailPage: React.FC<JourneyDetailPageProps> = ({ journey, onNavigate }) => {
   useDocumentMeta({
-    title: `${journey.title} | مسیرهای اقدام مهام`,
+    title: `${journey.title} | مسیرهای اقدام گروه مهام`,
     description: journey.heroDescription,
     canonicalPath: `/journeys/${journey.slug}`
   });

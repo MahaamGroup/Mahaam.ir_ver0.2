@@ -20,7 +20,7 @@ export function useDocumentMeta({
 }: MetaOptions) {
   useEffect(() => {
     // 1. Page Title
-    const formattedTitle = title.includes('مهام') ? title : `${title} | ${siteConfig.name}`;
+    const formattedTitle = title.includes('گروه مهام') || title.includes('گروه بین‌المللی مهام') ? title : `${title} | ${siteConfig.name}`;
     document.title = formattedTitle;
 
     // 2. Meta description

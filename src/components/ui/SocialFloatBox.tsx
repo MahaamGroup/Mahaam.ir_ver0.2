@@ -55,7 +55,7 @@ export const SocialFloatBox: React.FC = () => {
 
             {/* Direct Phone Lines */}
             <div className="p-2.5 rounded-xl bg-[#F8F6F1] border border-[#BAC3CE]/30 text-center space-y-1.5">
-              <span className="text-[11px] text-slate-500 block">خطوط مستقیم ارتباطی مهام:</span>
+              <span className="text-[11px] text-slate-500 block">خطوط مستقیم ارتباطی گروه مهام:</span>
               <div className="flex items-center justify-center gap-2 text-xs font-bold font-sans dir-ltr" dir="ltr">
                 <a href={`tel:${rawPhone1}`} className="text-[#0C2340] hover:text-[#2E7D32] transition-colors">{phone1}</a>
                 <span className="text-slate-300">|</span>
@@ -150,8 +150,8 @@ export const SocialFloatBox: React.FC = () => {
         whileTap={{ scale: 0.94 }}
         onClick={() => setIsOpen(!isOpen)}
         className="p-3.5 rounded-full shadow-xl transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#84CC16] relative bg-gradient-to-tr from-[#6DA616] to-[#84CC16] hover:from-[#5B8C12] hover:to-[#6DA616] text-white border border-lime-200/50 shadow-lime-950/20"
-        aria-label="ارتباط مستقیم در شبکه‌های اجتماعی و تلفن مهام"
-        title="ارتباط مستقیم در شبکه‌های اجتماعی و تلفن مهام"
+        aria-label="ارتباط مستقیم در شبکه‌های اجتماعی و تلفن گروه مهام"
+        title="ارتباط مستقیم در شبکه‌های اجتماعی و تلفن گروه مهام"
       >
         <Phone className="w-4 h-4 text-white" />
         <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-white border-2 border-[#6DA616] animate-pulse" />

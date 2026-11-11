@@ -183,7 +183,7 @@ export const DecisionEnginePage: React.FC<DecisionEnginePageProps> = ({ onNaviga
 
   return (
     <div className="bg-[#F8F6F1] min-h-screen">
-      <Breadcrumbs items={[{ label: 'موتور ارزیابی و تصمیم مهام' }]} onNavigate={onNavigate} />
+      <Breadcrumbs items={[{ label: 'موتور ارزیابی و تصمیم گروه مهام' }]} onNavigate={onNavigate} />
 
       {/* Hero Header */}
       <section className="bg-gradient-to-b from-[#081525] to-[#0C2340] text-white py-14 md:py-20 border-b border-white/10 text-right">
@@ -274,7 +274,7 @@ export const DecisionEnginePage: React.FC<DecisionEnginePageProps> = ({ onNaviga
                 </div>
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-[#6DA616] shrink-0" />
-                  <span>تطبیق هوشمند با سفرها و تجارب موفق مهام در اروپا</span>
+                  <span>تطبیق هوشمند با سفرها و تجارب موفق گروه مهام در اروپا</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-[#6DA616] shrink-0" />
@@ -417,7 +417,7 @@ export const DecisionEnginePage: React.FC<DecisionEnginePageProps> = ({ onNaviga
                   تنظیم مشخصات ارتباطی و خواسته مشخص شما
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                  این اطلاعات به کارشناسان ارشد مهام کمک می‌کند پاسخ را دقیقاً متناسب با عنوان حرفه‌ای، ترجیح ارتباطی و خواسته شما تنظیم کنند.
+                  این اطلاعات به کارشناسان ارشد گروه مهام کمک می‌کند پاسخ را دقیقاً متناسب با عنوان حرفه‌ای، ترجیح ارتباطی و خواسته شما تنظیم کنند.
                 </p>
               </div>
 
@@ -541,7 +541,7 @@ export const DecisionEnginePage: React.FC<DecisionEnginePageProps> = ({ onNaviga
                     rows={3}
                     value={additionalNotes}
                     onChange={(e) => setAdditionalNotes(e.target.value)}
-                    placeholder="هر نکته‌ای که در ارزیابی دقیق‌تر پرونده شما توسط مشاوران مهام نقش دارد..."
+                    placeholder="هر نکته‌ای که در ارزیابی دقیق‌تر پرونده شما توسط مشاوران گروه مهام نقش دارد..."
                     className="w-full p-3.5 bg-[#F8F6F1] rounded-2xl border border-transparent focus:border-[#3658B6] focus:bg-white focus:outline-none text-xs sm:text-sm text-slate-800 transition-all text-right resize-none"
                   />
                 </div>
@@ -597,7 +597,7 @@ export const DecisionEnginePage: React.FC<DecisionEnginePageProps> = ({ onNaviga
                   </div>
 
                   <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-                    با سپاس از اعتماد شما، {salutation} {fullName} گرامی. پاسخ‌های تشخیصی ۵ گانه شما به همراه خواسته اصلی ثبت‌شده، برای ممیزی در اختیار کارشناس مسئول دپارتمان تخصصی مهام قرار گرفت.
+                    با سپاس از اعتماد شما، {salutation} {fullName} گرامی. پاسخ‌های تشخیصی ۵ گانه شما به همراه خواسته اصلی ثبت‌شده، برای ممیزی در اختیار کارشناس مسئول دپارتمان تخصصی گروه مهام قرار گرفت.
                   </p>
 
                   <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
@@ -691,7 +691,7 @@ export const DecisionEnginePage: React.FC<DecisionEnginePageProps> = ({ onNaviga
                   <div className="pt-4 border-t border-[#EEF1F3] flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#F8F6F1]/60 p-4 rounded-2xl">
                     <div className="space-y-0.5 text-right">
                       <span className="text-xs font-bold text-[#0C2340] block">
-                        تأیید و ارسال نهایی جهت ممیزی کارشناسان ارشد مهام
+                        تأیید و ارسال نهایی جهت ممیزی کارشناسان ارشد گروه مهام
                       </span>
                       <span className="text-[11px] text-slate-500 block">
                         اطلاعات شما در سامانه ثبت و کد رهگیری پرونده صادر خواهد شد.

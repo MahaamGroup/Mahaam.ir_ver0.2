@@ -11,7 +11,7 @@ interface AudienceDetailPageProps {
 
 export const AudienceDetailPage: React.FC<AudienceDetailPageProps> = ({ audience, onNavigate }) => {
   useDocumentMeta({
-    title: `${audience.title} | راهکارهای اختصاصی مهام`,
+    title: `${audience.title} | راهکارهای اختصاصی گروه مهام`,
     description: audience.heroDescription,
     canonicalPath: `/audiences/${audience.slug}`
   });

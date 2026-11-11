@@ -76,11 +76,11 @@ export const ApproachSection: React.FC<ApproachSectionProps> = ({ onNavigate }) 
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
-            رویکرد مهام؛ چهار گام تا تصمیم آگاهانه
+            رویکرد گروه مهام؛ چهار گام تا تصمیم آگاهانه
           </h2>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-            تفاوت رویکرد مهام در این است که هرگز پیش از شناخت و تحلیل عمیق، نسخه‌ای صادر نمی‌شود.
+            تفاوت رویکرد گروه مهام در این است که هرگز پیش از شناخت و تحلیل عمیق، نسخه‌ای صادر نمی‌شود.
           </p>
         </div>
 

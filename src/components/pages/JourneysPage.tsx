@@ -112,7 +112,7 @@ export const JourneysPage: React.FC<JourneysPageProps> = ({ onNavigate }) => {
             <div className="space-y-2 text-right">
               <h3 className="text-xl font-bold">می‌خواهید بدانید کدام سفر متناسب با شماست؟</h3>
               <p className="text-xs sm:text-sm text-slate-300">
-                ابزار ارزیابی تصمیم مهام شرایط شما را سنجیده و مسیر بهینه شروع را پیشنهاد می‌کند.
+                ابزار ارزیابی تصمیم گروه مهام شرایط شما را سنجیده و مسیر بهینه شروع را پیشنهاد می‌کند.
               </p>
             </div>
             <button

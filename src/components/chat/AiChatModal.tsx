@@ -13,9 +13,15 @@ import {
   ChevronLeft,
   CheckCircle2,
   User,
-  ArrowRight
+  ArrowRight,
+  Radio,
+  Wifi,
+  WifiOff,
+  Clock
 } from 'lucide-react';
 import { chatStore, ChatMessage as StoreMessage } from '../../lib/chatStore';
+import { authStore } from '../../lib/authStore';
+import { aiKnowledgeStore } from '../../lib/aiKnowledgeStore';
 
 interface Message {
   id: string;
@@ -33,6 +39,9 @@ export const AiChatModal: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [showHandoffModal, setShowHandoffModal] = useState(false);
   const [handoffSuccess, setHandoffSuccess] = useState<string | null>(null);
+
+  // Online / Offline Status of Experts
+  const [isExpertsOnline, setIsExpertsOnline] = useState<boolean>(() => authStore.areExpertsOnline());
 
   // User contact info state
   const [userName, setUserName] = useState('');
@@ -52,26 +61,33 @@ export const AiChatModal: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const initialWelcomeText = 'درود بر شما. من مشاور هوشمند گروه بین‌المللی مهام هستم. رویکرد ما در مهام بر پایه «ارزیابی دقیق صلاحیت و واقع‌بینی حقوقی» است، نه وعده‌های تبلیغاتی. در چه زمینه‌ای مایلید اطلاعات تخصصی و دقیق دریافت کنید؟';
+  const initialWelcomeText = 'درود بر شما. من مشاور هوشمند گروه بین‌المللی مهام هستم. پاسخگویی من صرفاً محدود و منطبق بر پایگاه دانش مکتوب و مصوب گروه مهام است. در چه زمینه‌ای مایلید اطلاعات تخصصی و مستند دریافت فرمایید؟';
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'm-init',
       sender: 'bot',
-      senderName: 'مشاور هوشمند مهام',
+      senderName: 'مشاور هوشمند گروه مهام',
       text: initialWelcomeText,
       timestamp: 'هم‌اکنون',
       suggestedActions: [
         { label: 'شرایط کادر درمان و پزشکان', action: 'health' },
         { label: 'هیئت‌های تخصصی حقوقی لاهه', action: 'legal' },
         { label: 'توسعه شرکت‌ها و سرمایه‌گذاری', action: 'business' },
-        { label: 'کدام مسیر برای من مناسب است؟', action: 'guidance' }
+        { label: 'خط‌مشی واقع‌بینی و تضمین‌ها', action: 'realism' }
       ]
     }
   ]);
 
-  // Initialize or restore session
+  // Monitor online status & session initialization
   useEffect(() => {
+    // Check initial online status
+    setIsExpertsOnline(authStore.areExpertsOnline());
+
+    const unsubAuth = authStore.subscribe(() => {
+      setIsExpertsOnline(authStore.areExpertsOnline());
+    });
+
     let currentSessId = localStorage.getItem('mahaam_current_chat_session_id');
     if (!currentSessId) {
       currentSessId = 'sess-' + Math.floor(100000 + Math.random() * 900000);
@@ -103,7 +119,7 @@ export const AiChatModal: React.FC = () => {
     }
 
     // Subscribe to chatStore updates (e.g. expert replies sent from Admin)
-    const unsubscribe = chatStore.subscribe(() => {
+    const unsubChats = chatStore.subscribe(() => {
       const updated = chatStore.getSessionById(currentSessId!);
       if (updated && updated.messages) {
         setMessages(
@@ -119,7 +135,10 @@ export const AiChatModal: React.FC = () => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubAuth();
+      unsubChats();
+    };
   }, []);
 
   const scrollToBottom = () => {
@@ -146,8 +165,8 @@ export const AiChatModal: React.FC = () => {
     const ackMsg: Message = {
       id: `ack-${Date.now()}`,
       sender: 'bot',
-      senderName: 'سیستم مهام',
-      text: `اطلاعات تماس شما (${fullNameWithPrefix} - ${userPhone}) جهت تداوم ارتباط با کارشناسان ارشد ثبت گردید. تمامی پیام‌های این گفتگو برای کارشناسان مهام قابل پیگیری و پاسخگویی خواهد بود.`,
+      senderName: 'سیستم ثبت گروه مهام',
+      text: `اطلاعات تماس شما (${fullNameWithPrefix} - ${userPhone}) با موفقیت ثبت شد. پیام‌ها و درخواست شما جهت پیگیری مستقیم در کارتابل کارشناسان رسمی گروه بین‌المللی مهام قرار گرفت.`,
       timestamp: 'هم‌اکنون'
     };
     setMessages(prev => [...prev, ackMsg]);
@@ -155,79 +174,11 @@ export const AiChatModal: React.FC = () => {
       sessionId,
       userName: fullNameWithPrefix,
       userPhone: userPhone.trim(),
-      message: { sender: 'assistant', text: ackMsg.text, senderName: 'سیستم مهام' }
+      message: { sender: 'assistant', text: ackMsg.text, senderName: 'سیستم ثبت گروه مهام' }
     });
   };
 
-  // Knowledge response generator
-  const generateAiResponse = (userInput: string): { text: string; actions?: { label: string; action: string }[] } => {
-    const input = userInput.toLowerCase();
-
-    // 1. Health & Medical
-    if (input.includes('پزشک') || input.includes('درمان') || input.includes('پرستار') || input.includes('دندانپزشک') || input.includes('معادل') || input.includes('health')) {
-      return {
-        text: 'در خصوص کادر درمان و پزشکان محترم: مسیر مهام شامل ارزیابی دقیق دانشنامه، تعیین سطح زبان تخصصی پزشکی (Fachsprachprüfung در آلمان و زبان‌های مقصد)، اخذ تأییدیه مدارک (Approbation / Gleichwertigkeit) و تطبیق دوره‌های کارورزی بالینی است. مهام از عقد قراردادهای بدون بررسی صلاحیت قبلی خودداری می‌کند تا پرونده شما با بیشترین درصد انطباق به جریان بیفتد.',
-        actions: [
-          { label: 'اتصال به کارشناس سلامت و درمان', action: 'handoff-health' },
-          { label: 'مشاهده مسیر بالینی', action: 'view-journey-health' }
-        ]
-      };
-    }
-
-    // 2. Legal / Hague / Courts
-    if (input.includes('حقوق') || input.includes('وکالت') || input.includes('دادگاه') || input.includes('لاهه') || input.includes('قضا') || input.includes('hague') || input.includes('legal')) {
-      return {
-        text: 'گروه بین‌المللی مهام رکورددار برگزاری ۹ دوره متوالی اعزام هیئت‌های تخصصی حقوقی به لاهه هلند (مقر دیوان بین‌المللی دادگستری ICJ و دیوان بین‌المللی کیفری ICC) با همکاری رسمی دانشگاه‌ها و مؤسسات حقوقی برجسته اروپاست. این برنامه‌ها فرصتی کم‌نظیر برای پژوهش، شبکه‌سازی بین‌المللی و کارگاه‌های تخصصی داوری تجاری است.',
-        actions: [
-          { label: 'رزرو مشاوره با بخش حقوق بین‌الملل', action: 'handoff-legal' },
-          { label: 'مشاهده جزئیات دوره لاهه', action: 'view-journey-legal' }
-        ]
-      };
-    }
-
-    // 3. Business / Investment / Enterprise
-    if (input.includes('شرکت') || input.includes('سرمایه') || input.includes('تجارت') || input.includes('صادرات') || input.includes('بیزنس') || input.includes('توسعه بازرگانی')) {
-      return {
-        text: 'برای مدیران عامل و شرکت‌ها، مهام چارچوب ورود قانونی به بازارهای اروپایی و بین‌المللی، ثبت شرکت، اعتبارسنجی شرکای تجاری و ساختارهای انتقال فناوری را با نظارت رسمی و مجوز سازمان توسعه تجارت (TPO) پیاده‌سازی می‌کند. رویکرد ما حفاظت از سرمایه و پایداری زنجیره تأمین است.',
-        actions: [
-          { label: 'اتصال به مشاور توسعه تجاری', action: 'handoff-business' },
-          { label: 'مشاهده مسیر مشارکت تجاری', action: 'view-journey-business' }
-        ]
-      };
-    }
-
-    // 4. Guarantees / Promises / Realism
-    if (input.includes('تضمین') || input.includes('گارانتی') || input.includes('صد در صد') || input.includes('وعده') || input.includes('ریسک')) {
-      return {
-        text: 'اصل محوری گروه مهام «صداقت حرفه‌ای و عدم ارائه وعده‌های پوچ» است. تصمیم‌گیری فرامرزی و اخذ مجوزهای بین‌المللی دارای ضوابط قانونی و بررسی‌های حاکمیتی است؛ لذا مهام به جای وعده تضمین صددرصدی، اقدام به غربالگری اولیه، ارزیابی شفاف شانس موفقیت و عقد قراردادهای شفاف با تعهدات گام‌به‌گام می‌نماید.',
-        actions: [
-          { label: 'انجام ارزیابی اولیه شایستگی', action: 'eval' },
-          { label: 'تماس تلفنی با مشاوران', action: 'call' }
-        ]
-      };
-    }
-
-    // 5. Contact / Phone / Office Address
-    if (input.includes('تماس') || input.includes('تلفن') || input.includes('آدرس') || input.includes('دفتر') || input.includes('نوبت') || input.includes('کجاست')) {
-      return {
-        text: 'دفتر مرکزی مهام در تهران: خیابان جردن (نلسون ماندلا)، خیابان سلطانی (سایه)، پلاک ۸۲، طبقه ۴ مستقر است.\nخطوط اختصاصی مشاوره: ۰۲۱-۲۲۶۶۳۰۰۲ | ۰۲۱-۲۲۶۶۳۰۰۱\nساعات پاسخگویی: شنبه تا چهارشنبه ۹:۰۰ الی ۱۷:۰۰، پنج‌شنبه ۹:۰۰ الی ۱۳:۰۰.\nهمچنین پیام شما در سامانه ثبت شده و کارشناسان ما پاسخگو خواهند بود.',
-        actions: [
-          { label: 'اتصال به کارشناسان ارشد', action: 'handoff' },
-          { label: 'شماره‌گیری تلفن مستقیم', action: 'call' }
-        ]
-      };
-    }
-
-    // Default intelligent guidance
-    return {
-      text: 'پرسش شما دریافت و در سامانه مهام آرشیو شد. خدمات گروه بین‌المللی مهام در پنج حوزه تخصصی ساماندهی شده است: کادر درمان، مدیران ارشد، حقوق‌دانان، صاحبان صنایع و سرمایه‌گذاران، و خانواده‌ها. کارشناسان ما نیز این گفتگو را مشاهده کرده و در صورت نیاز مستقیماً پاسخ می‌دهند.',
-      actions: [
-        { label: 'اتصال به کارشناسان ارشد مهام', action: 'handoff' },
-        { label: 'بررسی ۵ گام ارزیابی هوشمند', action: 'eval' }
-      ]
-    };
-  };
-
+  // Strictly evaluated AI response using the admin-managed knowledge base
   const handleSendMessage = (textToSend?: string) => {
     const text = textToSend || inputValue.trim();
     if (!text) return;
@@ -253,14 +204,16 @@ export const AiChatModal: React.FC = () => {
     setIsTyping(true);
 
     setTimeout(() => {
-      const response = generateAiResponse(text);
+      // STRICT MATCH ONLY from admin knowledge store
+      const matchResult = aiKnowledgeStore.findStrictMatch(text);
+
       const botMsg: Message = {
         id: `b-${Date.now()}`,
         sender: 'bot',
-        senderName: 'مشاور هوشمند مهام',
-        text: response.text,
+        senderName: 'مشاور هوشمند گروه مهام',
+        text: matchResult.response,
         timestamp: 'هم‌اکنون',
-        suggestedActions: response.actions
+        suggestedActions: matchResult.action ? [matchResult.action] : undefined
       };
       setIsTyping(false);
       setMessages(prev => [...prev, botMsg]);
@@ -268,9 +221,9 @@ export const AiChatModal: React.FC = () => {
       // Archive AI response to chatStore
       chatStore.saveClientMessage({
         sessionId,
-        message: { sender: 'assistant', text: response.text, senderName: 'مشاور هوشمند مهام' }
+        message: { sender: 'assistant', text: matchResult.response, senderName: 'مشاور هوشمند گروه مهام' }
       });
-    }, 700);
+    }, 600);
   };
 
   const handleActionClick = (action: string) => {
@@ -278,38 +231,30 @@ export const AiChatModal: React.FC = () => {
       setShowHandoffModal(true);
       return;
     }
-    if (action === 'call') {
+    if (action.startsWith('tel:') || action === 'call') {
       window.location.href = 'tel:+982122663002';
       return;
     }
-    if (action === 'eval') {
-      window.location.href = '/decision-engine';
-      setIsOpen(false);
-      return;
-    }
-    if (action === 'view-journey-health') {
-      window.location.href = '/journeys/clinical-healthcare';
-      setIsOpen(false);
-      return;
-    }
-    if (action === 'view-journey-legal') {
-      window.location.href = '/journeys/international-law-justice';
-      setIsOpen(false);
-      return;
-    }
-    if (action === 'view-journey-business') {
-      window.location.href = '/journeys/enterprise-partnership';
-      setIsOpen(false);
-      return;
-    }
     if (action === 'health') {
-      handleSendMessage('شرایط و مراحل تطبیق مدرک کادر درمان و پزشکان چگونه است؟');
-    } else if (action === 'legal') {
-      handleSendMessage('درباره هیئت‌های تخصصی حقوقی لاهه و دیوان‌های بین‌المللی توضیح دهید.');
-    } else if (action === 'business') {
-      handleSendMessage('برای ثبت شرکت و سرمایه‌گذاری بین‌المللی چه روندی دارید؟');
-    } else if (action === 'guidance') {
-      handleSendMessage('بر چه اساسی مسیر مناسب برای هر شخص تعیین می‌شود؟');
+      handleSendMessage('شرایط و مراحل تطبیق مدرک کادر درمان و پزشکان در گروه مهام');
+      return;
+    }
+    if (action === 'legal') {
+      handleSendMessage('درباره هیئت‌های تخصصی حقوقی لاهه گروه مهام توضیح دهید');
+      return;
+    }
+    if (action === 'business') {
+      handleSendMessage('برای ثبت شرکت و سرمایه‌گذاری بین‌المللی در گروه مهام چه روندی وجود دارد؟');
+      return;
+    }
+    if (action === 'realism') {
+      handleSendMessage('خط مشی واقع‌بینی حقوقی و عدم وعده تضمین در گروه مهام');
+      return;
+    }
+    if (action.startsWith('/')) {
+      window.location.href = action;
+      setIsOpen(false);
+      return;
     }
   };
 
@@ -331,8 +276,8 @@ export const AiChatModal: React.FC = () => {
     const handoffMsg: Message = {
       id: `h-${Date.now()}`,
       sender: 'bot',
-      senderName: 'سیستم مهام',
-      text: `درخواست ارتباط مستقیم شما با کارشناسان ثبت شد.\nکد رهگیری: ${refNumber}\nکارشناس ارشد مهام به زودی با شماره ${expertPhone} تماس حاصل خواهد کرد.`,
+      senderName: 'سیستم گروه مهام',
+      text: `درخواست ارتباط مستقیم شما با کارشناسان گروه مهام ثبت گردید.\nکد رهگیری: ${refNumber}\nکارشناس ذی‌صلاح در دپارتمان تخصصی در اسرع وقت با شماره ${expertPhone} تماس حاصل خواهد کرد.`,
       timestamp: 'هم‌اکنون'
     };
     setMessages(prev => [...prev, handoffMsg]);
@@ -340,7 +285,7 @@ export const AiChatModal: React.FC = () => {
       sessionId,
       userName: expertName,
       userPhone: expertPhone,
-      message: { sender: 'assistant', text: handoffMsg.text, senderName: 'سیستم مهام' }
+      message: { sender: 'assistant', text: handoffMsg.text, senderName: 'سیستم گروه مهام' }
     });
   };
 
@@ -352,14 +297,14 @@ export const AiChatModal: React.FC = () => {
       {
         id: `m-init-${Date.now()}`,
         sender: 'bot',
-        senderName: 'مشاور هوشمند مهام',
+        senderName: 'مشاور هوشمند گروه مهام',
         text: initialWelcomeText,
         timestamp: 'هم‌اکنون',
         suggestedActions: [
           { label: 'شرایط کادر درمان و پزشکان', action: 'health' },
           { label: 'هیئت‌های تخصصی حقوقی لاهه', action: 'legal' },
           { label: 'توسعه شرکت‌ها و سرمایه‌گذاری', action: 'business' },
-          { label: 'کدام مسیر برای من مناسب است؟', action: 'guidance' }
+          { label: 'خط‌مشی واقع‌بینی و تضمین‌ها', action: 'realism' }
         ]
       }
     ]);
@@ -374,18 +319,22 @@ export const AiChatModal: React.FC = () => {
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
           className="flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-[#0C2340] to-[#1a3d6d] hover:from-[#123157] hover:to-[#224e87] text-white shadow-xl border border-white/20 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#3658B6] group"
-          aria-label="چت آنلاین با مشاور هوشمند مهام"
-          title="چت آنلاین با مشاور هوشمند مهام"
+          aria-label="چت آنلاین با مشاور هوشمند گروه مهام"
+          title="چت آنلاین با مشاور هوشمند گروه مهام"
         >
           <div className="relative">
             <div className="w-6 h-6 rounded-full bg-[#3658B6] flex items-center justify-center text-white">
               <Sparkles className="w-3.5 h-3.5 animate-pulse text-[#9FC9E8]" />
             </div>
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#6DA616]" />
+            <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white ${
+              isExpertsOnline ? 'bg-[#6DA616]' : 'bg-amber-400'
+            }`} />
           </div>
           <div className="text-right leading-tight">
-            <span className="text-xs font-bold block text-white">مشاور هوشمند مهام</span>
-            <span className="text-[10px] text-[#9FC9E8] block">پاسخگویی سریع ۲۴/۷</span>
+            <span className="text-xs font-bold block text-white">مشاور هوشمند گروه مهام</span>
+            <span className="text-[10px] text-[#9FC9E8] block">
+              {isExpertsOnline ? 'کارشناسان هم‌اکنون آنلاینند' : 'پاسخگویی سریع ۲۴/۷'}
+            </span>
           </div>
         </motion.button>
       </div>
@@ -398,7 +347,7 @@ export const AiChatModal: React.FC = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 w-[94vw] sm:w-[440px] max-h-[82vh] h-[610px] bg-white rounded-3xl shadow-2xl border border-[#BAC3CE]/50 flex flex-col z-50 overflow-hidden font-sans text-right"
+            className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 w-[94vw] sm:w-[450px] max-h-[84vh] h-[630px] bg-white rounded-3xl shadow-2xl border border-[#BAC3CE]/50 flex flex-col z-50 overflow-hidden font-sans text-right"
           >
             {/* Header */}
             <div className="bg-[#0C2340] text-white p-4 flex items-center justify-between border-b border-white/10 shrink-0">
@@ -407,16 +356,31 @@ export const AiChatModal: React.FC = () => {
                   <div className="w-10 h-10 rounded-2xl bg-[#3658B6] flex items-center justify-center text-white shadow-inner">
                     <Bot className="w-5 h-5 text-white" />
                   </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#6DA616] border-2 border-[#0C2340]" />
+                  <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0C2340] ${
+                    isExpertsOnline ? 'bg-[#6DA616]' : 'bg-amber-400'
+                  }`} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold">مشاور هوشمند و کارشناسان مهام</span>
+                    <span className="text-sm font-bold">مشاور هوشمند گروه مهام</span>
                     <span className="text-[9px] bg-white/10 text-[#9FC9E8] px-1.5 py-0.5 rounded-md font-mono">
-                      {sessionId ? `#${sessionId.slice(-6)}` : 'آنلاین'}
+                      {sessionId ? `#${sessionId.slice(-6)}` : 'فعال'}
                     </span>
                   </div>
-                  <span className="text-[11px] text-[#9FC9E8] block">راهنمای تخصصی مسیرهای بین‌المللی</span>
+                  {/* Real-time Online/Offline indicator */}
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {isExpertsOnline ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>کارشناسان گروه مهام هم‌اکنون آنلاین هستند</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-amber-300 font-medium">
+                        <Clock className="w-3 h-3 text-amber-300" />
+                        <span>کارشناسان آفلاین | پاسخ در اولین فرصت</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -440,18 +404,28 @@ export const AiChatModal: React.FC = () => {
               </div>
             </div>
 
+            {/* Offline Status Alert Banner if experts are currently offline */}
+            {!isExpertsOnline && (
+              <div className="bg-amber-500/10 border-b border-amber-500/20 px-3.5 py-2.5 flex items-start gap-2.5 text-xs text-amber-950 shrink-0">
+                <WifiOff className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <p className="text-[11px] leading-relaxed text-justify text-justify-inter-word font-medium">
+                  در حال حاضر کارشناسان گروه مهام آنلاین نیستند. لطفاً پیامتون رو ثبت کنید و شماره‌تون رو وارد نمایید. کارشناسان گروه مهام در اولین فرصت به پیام شما پاسخ خواهند داد.
+                </p>
+              </div>
+            )}
+
             {/* Quick Action Top Bar: Connect to Human Expert */}
             <div className="bg-[#EEF1F3] px-3.5 py-2 flex items-center justify-between border-b border-[#BAC3CE]/30 text-xs shrink-0">
               <div className="flex items-center gap-1.5 text-slate-600 text-[11px]">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#0D5A63]" />
-                <span>پاسخگویی مستند و آرشیو رسمی</span>
+                <span>پاسخگویی صرفاً منطبق بر پایگاه دانش مصوب</span>
               </div>
               <button
                 onClick={() => setShowHandoffModal(true)}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#3658B6] hover:bg-[#2B4696] text-white text-[11px] font-semibold transition-colors cursor-pointer shadow-xs"
               >
                 <UserCheck className="w-3 h-3" />
-                <span>اتصال به کارشناسان ارشد</span>
+                <span>اتصال به کارشناسان گروه مهام</span>
               </button>
             </div>
 
@@ -461,7 +435,7 @@ export const AiChatModal: React.FC = () => {
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-start gap-2">
                     <User className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-amber-900 leading-snug font-medium">
+                    <p className="text-[11px] text-amber-900 leading-snug font-medium text-justify text-justify-inter-word">
                       «برای از دست نرفتن پیام‌ها و تداوم ارتباط با کارشناسان، لطفاً نام و شماره همراه خود را وارد نمایید.»
                     </p>
                   </div>
@@ -538,7 +512,7 @@ export const AiChatModal: React.FC = () => {
                           <>
                             <span className="w-2 h-2 rounded-full bg-emerald-500" />
                             <span className="text-[11px] font-bold text-emerald-800">
-                              {msg.senderName || 'کارشناس رسمی مهام'}
+                              {msg.senderName || 'کارشناس رسمی گروه مهام'}
                             </span>
                             <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.2 rounded font-medium">
                               پاسخ مستقیم کارشناس
@@ -548,7 +522,7 @@ export const AiChatModal: React.FC = () => {
                           <>
                             <span className="w-1.5 h-1.5 rounded-full bg-[#3658B6]" />
                             <span className="text-[11px] font-medium text-slate-500">
-                              {msg.senderName || 'مشاور هوشمند مهام'}
+                              {msg.senderName || 'مشاور هوشمند گروه مهام'}
                             </span>
                           </>
                         )}
@@ -556,7 +530,7 @@ export const AiChatModal: React.FC = () => {
                     )}
 
                     <div
-                      className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-[13px] leading-relaxed ${
+                      className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-[13px] leading-relaxed text-justify text-justify-inter-word ${
                         isUser
                           ? 'bg-[#3658B6] text-white rounded-tl-none shadow-md'
                           : isExpert
@@ -614,7 +588,7 @@ export const AiChatModal: React.FC = () => {
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="پرسش خود را بنویسید (مثلاً شرایط پزشکان یا دوره‌های لاهه)..."
+                  placeholder="پرسش خود را بنویسید (مثلاً شرایط کادر درمان یا دوره‌های لاهه)..."
                   className="flex-1 bg-[#EEF1F3] text-slate-800 placeholder-slate-400 text-xs sm:text-[13px] rounded-xl px-3.5 py-2.5 border border-transparent focus:border-[#3658B6] focus:bg-white focus:outline-none transition-all text-right"
                 />
                 <button
@@ -658,8 +632,8 @@ export const AiChatModal: React.FC = () => {
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
                   <h3 className="text-lg font-bold text-[#0C2340]">درخواست شما با موفقیت ثبت گردید</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed max-w-xs mx-auto">
-                    اطلاعات پرونده به کارشناس ارشد دپارتمان مربوطه ارجاع گردید.
+                  <p className="text-xs text-slate-600 leading-relaxed max-w-xs mx-auto text-justify text-justify-inter-word">
+                    اطلاعات پرونده و پیام شما به کارشناس ارشد دپارتمان مربوطه در گروه بین‌المللی مهام ارجاع گردید.
                   </p>
                   <div className="p-3 bg-[#EEF1F3] rounded-2xl border border-[#BAC3CE]/40 inline-block font-mono text-sm font-bold text-[#0C2340]">
                     کد رهگیری: {handoffSuccess}
@@ -683,7 +657,7 @@ export const AiChatModal: React.FC = () => {
                       <UserCheck className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold">اتصال مستقیم به کارشناسان ارشد مهام</h3>
+                      <h3 className="text-sm font-bold">اتصال مستقیم به کارشناسان گروه بین‌المللی مهام</h3>
                       <span className="text-[11px] text-slate-500">بررسی تخصصی و تماس مشاور ذی‌صلاح</span>
                     </div>
                   </div>
@@ -715,7 +689,7 @@ export const AiChatModal: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">دپارتمان تخصصی مدنظر</label>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">دپارتمان تخصصی مدنظر در گروه مهام</label>
                       <select
                         value={expertCategory}
                         onChange={(e) => setExpertCategory(e.target.value)}
@@ -736,7 +710,7 @@ export const AiChatModal: React.FC = () => {
                         value={expertNote}
                         onChange={(e) => setExpertNote(e.target.value)}
                         placeholder="خلاصه‌ای از وضعیت پرونده یا مقصد مدنظر..."
-                        className="w-full text-xs p-2.5 rounded-xl border border-[#BAC3CE]/60 focus:border-[#3658B6] focus:outline-none"
+                        className="w-full text-xs p-2.5 rounded-xl border border-[#BAC3CE]/60 focus:border-[#3658B6] focus:outline-none text-justify text-justify-inter-word"
                       />
                     </div>
                   </div>

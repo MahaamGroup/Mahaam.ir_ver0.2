@@ -14,7 +14,7 @@ interface ContactPageProps {
 export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
   useDocumentMeta({
     title: 'ارتباط با ما و تعیین وقت مشاوره',
-    description: 'نقطه ورود هوشمند به خدمات مهام؛ فرم ارزیابی اولیه، شماره تماس مستقیم ۰۲۱-۷۹۲۴۱۰۰۰ و نشانی دفتر مرکزی تهران.',
+    description: 'نقطه ورود هوشمند به خدمات گروه بین‌المللی مهام؛ فرم ارزیابی اولیه، شماره تماس مستقیم ۰۲۱-۲۲۶۶۳۰۰۲ و نشانی دفتر مرکزی تهران.',
     canonicalPath: '/contact'
   });
   const [firstName, setFirstName] = useState('');
@@ -53,7 +53,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
 
   return (
     <div className="bg-[#F8F6F1] min-h-screen">
-      <Breadcrumbs items={[{ label: 'ارتباط با مهام' }]} onNavigate={onNavigate} />
+      <Breadcrumbs items={[{ label: 'ارتباط با گروه مهام' }]} onNavigate={onNavigate} />
 
       {/* Hero */}
       <section className="bg-gradient-to-b from-[#081525] to-[#0C2340] text-white py-16 md:py-24 border-b border-white/10 text-right">
@@ -117,7 +117,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                   درباره یک مسیر مشخص سؤال دارم.
                 </h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  مناسب برای افرادی که یکی از Journeyهای مهام را از قبل بررسی کرده‌اند.
+                  مناسب برای افرادی که یکی از مسیرهای تخصصی گروه مهام را از قبل بررسی کرده‌اند.
                 </p>
               </div>
               <button
@@ -197,7 +197,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                   درخواست شما با موفقیت ثبت شد
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                  کد پیگیری اختصاصی شما: <span className="font-mono font-bold text-[#3658B6]">{trackingCode}</span> است. تیم مشاوران مهام پس از بررسی اولیه سوابق، ظرف ۲۴ الی ۴۸ ساعت کاری با شما ارتباط برقرار خواهند کرد.
+                  کد پیگیری اختصاصی شما: <span className="font-mono font-bold text-[#3658B6]">{trackingCode}</span> است. تیم مشاوران گروه مهام پس از بررسی اولیه سوابق، ظرف ۲۴ الی ۴۸ ساعت کاری با شما ارتباط برقرار خواهند کرد.
                 </p>
                 <button
                   onClick={() => setSubmitted(false)}
@@ -336,7 +336,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
 
                 <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-2 border-t border-[#EEF1F3]">
                   <ShieldCheck className="w-4 h-4 text-[#6DA616] shrink-0" />
-                  <span>کلیه اطلاعات ارسالی در چارچوب حریم خصوصی و محرمانگی مهام محافظت می‌گردد.</span>
+                  <span>کلیه اطلاعات ارسالی در چارچوب حریم خصوصی و محرمانگی گروه بین‌المللی مهام محافظت می‌گردد.</span>
                 </div>
 
               </form>
@@ -446,7 +446,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
             </div>
             <div className="p-5 rounded-2xl bg-white border border-[#BAC3CE]/30 space-y-1.5">
               <h3 className="text-sm font-bold text-[#0C2340]">آیا برای سازمان‌ها فرآیند جداگانه‌ای وجود دارد؟</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">بله؛ درخواست‌های سازمانی، هلدینگ‌ها و پروژه‌های مشترک مستقیماً به واحد توسعه راهبردی مهام ارجاع می‌گردند.</p>
+              <p className="text-xs text-slate-600 leading-relaxed">بله؛ درخواست‌های سازمانی، هلدینگ‌ها و پروژه‌های مشترک مستقیماً به واحد توسعه راهبردی گروه مهام ارجاع می‌گردند.</p>
             </div>
           </div>
         </div>

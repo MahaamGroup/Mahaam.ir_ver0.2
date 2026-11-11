@@ -37,11 +37,11 @@ export const AudienceSection: React.FC<AudienceSectionProps> = ({ onNavigate }) 
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[#0C2340]">
-            مهام برای چه کسانی است؟
+            گروه مهام برای چه کسانی است؟
           </h2>
 
           <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-            کاربر باید سریع جایگاه و شرایط خود را در مهام پیدا کند؛ ما به جای تحمیل خدمات، بستر را متناسب با هویت حرفه‌ای شما تنظیم می‌کنیم.
+            کاربر باید سریع جایگاه و شرایط خود را در گروه بین‌المللی مهام پیدا کند؛ ما به جای تحمیل خدمات، بستر را متناسب با هویت حرفه‌ای شما تنظیم می‌کنیم.
           </p>
         </div>
 
